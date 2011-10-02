@@ -1049,9 +1049,9 @@ static VALUE cState_init_copy(VALUE obj, VALUE orig)
  */
 static VALUE cState_from_state_s(VALUE self, VALUE opts)
 {
-    if (rb_obj_is_kind_of(opts, self)) {
+    if (RTEST(rb_obj_is_kind_of(opts, self))) {
         return opts;
-    } else if (rb_obj_is_kind_of(opts, rb_cHash)) {
+    } else if (RTEST(rb_obj_is_kind_of(opts, rb_cHash))) {
         return rb_funcall(self, i_new, 1, opts);
     } else {
         if (NIL_P(CJSON_SAFE_STATE_PROTOTYPE)) {

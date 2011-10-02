@@ -34,6 +34,7 @@ typedef unsigned char UTF8;   /* typically 8 bits */
 #define UNI_SUR_LOW_END     (UTF32)0xDFFF
 
 typedef struct JSON_ParserStruct {
+    VALUE dwrapped_parser;
     VALUE Vsource;
     char *source;
     long len;

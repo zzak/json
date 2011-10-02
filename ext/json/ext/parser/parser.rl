@@ -577,6 +577,16 @@ static VALUE convert_encoding(VALUE source)
     return source;
 }
 
+#if defined MAGLEV
+// Maglev doesn't support the mark function, keep a reference in the object
+#define QUOTE(x) #x
+#define PARSER_SET_REFERENCE(json, field, val)                          \
+    (json)->field = (val);                                              \
+    rb_iv_set(json->dwrapped_parser, QUOTE(@field), (json)->field);
+#else
+#define PARSER_SET_REFERENCE(json, field, val) (json)->field = (val);
+#endif
+
 /*
  * call-seq: new(source, opts => {})
  *
@@ -608,7 +618,7 @@ static VALUE cParser_initialize(int argc, VALUE *argv, VALUE self)
     VALUE source, opts;
     GET_PARSER_INIT;
 
-    if (json->Vsource) {
+    if (RTEST(json->Vsource)) {
         rb_raise(rb_eTypeError, "already initialized instance");
     }
     rb_scan_args(argc, argv, "11", &source, &opts);
@@ -656,35 +666,35 @@ static VALUE cParser_initialize(int argc, VALUE *argv, VALUE self)
             }
             tmp = ID2SYM(i_create_id);
             if (option_given_p(opts, tmp)) {
-                json->create_id = rb_hash_aref(opts, tmp);
+                PARSER_SET_REFERENCE(json, create_id, rb_hash_aref(opts, tmp));
             } else {
-                json->create_id = rb_funcall(mJSON, i_create_id, 0);
+                PARSER_SET_REFERENCE(json, create_id, rb_funcall(mJSON, i_create_id, 0));
             }
             tmp = ID2SYM(i_object_class);
             if (option_given_p(opts, tmp)) {
-                json->object_class = rb_hash_aref(opts, tmp);
+                PARSER_SET_REFERENCE(json, object_class, rb_hash_aref(opts, tmp));
             } else {
-                json->object_class = Qnil;
+                PARSER_SET_REFERENCE(json, object_class, Qnil);
             }
             tmp = ID2SYM(i_array_class);
             if (option_given_p(opts, tmp)) {
-                json->array_class = rb_hash_aref(opts, tmp);
+                PARSER_SET_REFERENCE(json, array_class, rb_hash_aref(opts, tmp));
             } else {
-                json->array_class = Qnil;
+                PARSER_SET_REFERENCE(json, array_class, Qnil);
             }
             tmp = ID2SYM(i_match_string);
             if (option_given_p(opts, tmp)) {
                 VALUE match_string = rb_hash_aref(opts, tmp);
-                json->match_string = RTEST(match_string) ? match_string : Qnil;
+                PARSER_SET_REFERENCE(json, match_string, RTEST(match_string) ? match_string : Qnil);
             } else {
-                json->match_string = Qnil;
+                PARSER_SET_REFERENCE(json, match_string, Qnil);
             }
         }
     } else {
         json->max_nesting = 19;
         json->allow_nan = 0;
         json->create_additions = 1;
-        json->create_id = rb_funcall(mJSON, i_create_id, 0);
+        PARSER_SET_REFERENCE(json, create_id, rb_funcall(mJSON, i_create_id, 0));
         json->object_class = Qnil;
         json->array_class = Qnil;
     }
@@ -694,7 +704,7 @@ static VALUE cParser_initialize(int argc, VALUE *argv, VALUE self)
     json->current_nesting = 0;
     json->len = RSTRING_LEN(source);
     json->source = RSTRING_PTR(source);;
-    json->Vsource = source;
+    PARSER_SET_REFERENCE(json, Vsource, source);
     return self;
 }
 
@@ -805,6 +815,13 @@ static JSON_Parser *JSON_allocate()
 {
     JSON_Parser *json = ALLOC(JSON_Parser);
     MEMZERO(json, JSON_Parser, 1);
+    json->dwrapped_parser = Qnil;
+    json->Vsource = Qnil;
+    json->create_id = Qnil;
+    json->object_class = Qnil;
+    json->array_class = Qnil;
+    json->match_string = Qnil;
+
     return json;
 }
 
@@ -825,7 +842,7 @@ static void JSON_free(JSON_Parser *json)
 static VALUE cJSON_parser_s_allocate(VALUE klass)
 {
     JSON_Parser *json = JSON_allocate();
-    return Data_Wrap_Struct(klass, JSON_mark, JSON_free, json);
+    return json->dwrapped_parser = Data_Wrap_Struct(klass, JSON_mark, JSON_free, json);
 }
 
 /*
