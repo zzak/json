@@ -145,13 +145,8 @@ module JSON
 
       private
 
-      def convert_encoding(source)
-        if source.respond_to?(:to_str)
-          source = source.to_str
-        else
-          raise TypeError, "#{source.inspect} is not like a string"
-        end
-        if defined?(::Encoding)
+      if defined?(::Encoding)
+        def sniff_unicode_encoding_and_convert(source)
           if source.encoding == ::Encoding::ASCII_8BIT
             b = source[0, 4].bytes.to_a
             source =
@@ -171,7 +166,9 @@ module JSON
             source = source.encode(::Encoding::UTF_8)
           end
           source.force_encoding(::Encoding::ASCII_8BIT)
-        else
+        end
+      else
+        def sniff_unicode_encoding_and_convert(source)
           b = source
           source =
             case
@@ -187,7 +184,15 @@ module JSON
               b
             end
         end
-        source
+      end
+
+      def convert_encoding(source)
+        if source.respond_to?(:to_str)
+          source = source.to_str
+        else
+          raise TypeError, "#{source.inspect} is not like a string"
+        end
+        sniff_unicode_encoding_and_convert(source)
       end
 
       # Unescape characters in strings.
