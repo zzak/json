@@ -501,6 +501,14 @@ static VALUE cState_s_allocate(VALUE klass)
     return Data_Wrap_Struct(klass, NULL, State_free, state);
 }
 
+static VALUE cState_aset(VALUE self, VALUE name, VALUE value);
+
+static int set_each_option_i(VALUE key, VALUE value, VALUE state)
+{
+    cState_aset(state, key, value);
+    return ST_CONTINUE;
+}
+
 /*
  * call-seq: configure(opts)
  *
@@ -517,7 +525,7 @@ static VALUE cState_configure(VALUE self, VALUE opts)
         rb_raise(rb_eArgError, "opts has to be hash like or convertable into a hash");
     }
     opts = tmp;
-    /* TODO preset instance variables from opts */
+    rb_hash_foreach(opts, set_each_option_i, self);
     tmp = rb_hash_aref(opts, ID2SYM(i_indent));
     if (RTEST(tmp)) {
         unsigned long len;
@@ -1211,8 +1219,12 @@ static VALUE cState_max_nesting(VALUE self)
 static VALUE cState_max_nesting_set(VALUE self, VALUE depth)
 {
     GET_STATE(self);
-    Check_Type(depth, T_FIXNUM);
-    return state->max_nesting = FIX2LONG(depth);
+    if (RTEST(depth)) {
+        Check_Type(depth, T_FIXNUM);
+        return state->max_nesting = FIX2LONG(depth);
+    } else {
+        return state->max_nesting = 0;
+    }
 }
 
 /*
