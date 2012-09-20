@@ -14,6 +14,10 @@
 #include "re.h"
 #endif
 
+#ifndef rb_intern_str
+#define rb_intern_str(string) rb_funcall(string, i_to_sym, 0)
+#endif
+
 #define option_given_p(opts, key) RTEST(rb_funcall(opts, i_key_p, 1, key))
 
 /* unicode defintions */

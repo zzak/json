@@ -7,9 +7,9 @@ gemspec :name => 'json_pure'
 gemspec :name => 'json-java'
 
 group :development, :test do
+  gem 'debugger', :platform => :mri_19
   gem 'simplecov', :platform => :mri_19
   gem 'utils'
-  gem 'debugger', :platform => :mri_19
 end
 
 group :test do

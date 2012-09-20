@@ -12,7 +12,7 @@ static VALUE mJSON, mExt, mGenerator, cState, mGeneratorMethods, mObject,
              eNestingError, CRegexp_MULTILINE, CJSON_SAFE_STATE_PROTOTYPE,
              i_SAFE_STATE_PROTOTYPE;
 
-static ID i_to_s, i_to_json, i_new, i_indent, i_space, i_space_before,
+static ID i_to_s, i_to_sym, i_to_json, i_new, i_indent, i_space, i_space_before,
           i_object_nl, i_array_nl, i_max_nesting, i_allow_nan, i_ascii_only,
           i_quirks_mode, i_pack, i_unpack, i_create_id, i_extend, i_key_p,
           i_aref, i_send, i_respond_to_p, i_match, i_keys, i_depth,
@@ -606,7 +606,7 @@ static void set_state_ivars(VALUE hash, VALUE state)
         VALUE key = rb_funcall(rb_ary_entry(ivars, i), i_to_s, 0);
         long key_len = RSTRING_LEN(key);
         VALUE value = rb_iv_get(state, StringValueCStr(key));
-        rb_hash_aset(hash, rb_str_intern(rb_str_substr(key, 1, key_len - 1)), value);
+        rb_hash_aset(hash, rb_intern_str(rb_str_substr(key, 1, key_len - 1)), value);
     }
 }
 
@@ -1393,6 +1393,7 @@ void Init_generator()
 
     CRegexp_MULTILINE = rb_const_get(rb_cRegexp, rb_intern("MULTILINE"));
     i_to_s = rb_intern("to_s");
+    i_to_sym = rb_intern("to_sym");
     i_to_json = rb_intern("to_json");
     i_new = rb_intern("new");
     i_indent = rb_intern("indent");
