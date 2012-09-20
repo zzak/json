@@ -15,7 +15,7 @@ static VALUE mJSON, mExt, mGenerator, cState, mGeneratorMethods, mObject,
 static ID i_to_s, i_to_sym, i_to_json, i_new, i_indent, i_space, i_space_before,
           i_object_nl, i_array_nl, i_max_nesting, i_allow_nan, i_ascii_only,
           i_quirks_mode, i_pack, i_unpack, i_create_id, i_extend, i_key_p,
-          i_aref, i_send, i_respond_to_p, i_match, i_keys, i_depth,
+          i_send, i_respond_to_p, i_match, i_keys, i_depth,
           i_buffer_initial_length, i_dup;
 
 /*
@@ -517,6 +517,7 @@ static VALUE cState_configure(VALUE self, VALUE opts)
         rb_raise(rb_eArgError, "opts has to be hash like or convertable into a hash");
     }
     opts = tmp;
+    /* TODO preset instance variables from opts */
     tmp = rb_hash_aref(opts, ID2SYM(i_indent));
     if (RTEST(tmp)) {
         unsigned long len;
@@ -601,12 +602,12 @@ static VALUE cState_configure(VALUE self, VALUE opts)
 static void set_state_ivars(VALUE hash, VALUE state)
 {
     VALUE ivars = rb_obj_instance_variables(state);
-    int i = 0;
+    int i;
     for (i = 0; i < RARRAY_LEN(ivars); i++) {
         VALUE key = rb_funcall(rb_ary_entry(ivars, i), i_to_s, 0);
         long key_len = RSTRING_LEN(key);
         VALUE value = rb_iv_get(state, StringValueCStr(key));
-        rb_hash_aset(hash, rb_intern_str(rb_str_substr(key, 1, key_len - 1)), value);
+        rb_hash_aset(hash, rb_str_intern(rb_str_substr(key, 1, key_len - 1)), value);
     }
 }
 
@@ -646,7 +647,7 @@ static VALUE cState_aref(VALUE self, VALUE name)
     if (RTEST(rb_funcall(self, i_respond_to_p, 1, name))) {
         return rb_funcall(self, i_send, 1, name);
     } else {
-        return rb_ivar_get(self, rb_intern_str(rb_str_concat(rb_str_new2("@"), name)));
+        return rb_ivar_get(self, rb_to_id(rb_str_concat(rb_str_new2("@"), name)));
     }
 }
 
@@ -664,7 +665,7 @@ static VALUE cState_aset(VALUE self, VALUE name, VALUE value)
     if (RTEST(rb_funcall(self, i_respond_to_p, 1, name_writer))) {
         return rb_funcall(self, i_send, 2, name_writer, value);
     } else {
-        rb_ivar_set(self, rb_intern_str(rb_str_concat(rb_str_new_cstr("@"), name)), value);
+        rb_ivar_set(self, rb_to_id(rb_str_concat(rb_str_new2("@"), name)), value);
     }
     return Qnil;
 }
@@ -1412,7 +1413,6 @@ void Init_generator()
     i_create_id = rb_intern("create_id");
     i_extend = rb_intern("extend");
     i_key_p = rb_intern("key?");
-    i_aref = rb_intern("[]");
     i_send = rb_intern("__send__");
     i_respond_to_p = rb_intern("respond_to?");
     i_match = rb_intern("match");
