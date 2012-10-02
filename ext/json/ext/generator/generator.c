@@ -598,21 +598,16 @@ static VALUE cState_configure(VALUE self, VALUE opts)
     return self;
 }
 
-static int
-ivar_i(st_data_t k, st_data_t v, st_data_t a)
+static void set_state_ivars(VALUE hash, VALUE state)
 {
-    ID    id_key = (ID)k;
-    VALUE key = rb_id2str(id_key);
-    VALUE value = (VALUE)v;
-    VALUE hash = (VALUE)a;
-
-    if (rb_is_instance_id(id_key)) {
-        long key_length = RSTRING_LEN(key);
-        if (key_length > 1) {
-            rb_hash_aset(hash, rb_str_intern(rb_str_substr(key, 1, key_length - 1)), value);
-        }
+    VALUE ivars = rb_obj_instance_variables(state);
+    int i = 0;
+    for (i = 0; i < RARRAY_LEN(ivars); i++) {
+        VALUE key = rb_funcall(rb_ary_entry(ivars, i), i_to_s, 0);
+        long key_len = RSTRING_LEN(key);
+        VALUE value = rb_iv_get(state, StringValueCStr(key));
+        rb_hash_aset(hash, rb_str_intern(rb_str_substr(key, 1, key_len - 1)), value);
     }
-    return ST_CONTINUE;
 }
 
 /*
@@ -625,6 +620,7 @@ static VALUE cState_to_h(VALUE self)
 {
     VALUE result = rb_hash_new();
     GET_STATE(self);
+    set_state_ivars(result, self);
     rb_hash_aset(result, ID2SYM(i_indent), rb_str_new(state->indent, state->indent_len));
     rb_hash_aset(result, ID2SYM(i_space), rb_str_new(state->space, state->space_len));
     rb_hash_aset(result, ID2SYM(i_space_before), rb_str_new(state->space_before, state->space_before_len));
@@ -636,7 +632,6 @@ static VALUE cState_to_h(VALUE self)
     rb_hash_aset(result, ID2SYM(i_max_nesting), LONG2FIX(state->max_nesting));
     rb_hash_aset(result, ID2SYM(i_depth), LONG2FIX(state->depth));
     rb_hash_aset(result, ID2SYM(i_buffer_initial_length), LONG2FIX(state->buffer_initial_length));
-    rb_ivar_foreach(self, ivar_i, result);
     return result;
 }
 
@@ -651,7 +646,7 @@ static VALUE cState_aref(VALUE self, VALUE name)
     if (RTEST(rb_funcall(self, i_respond_to_p, 1, name))) {
         return rb_funcall(self, i_send, 1, name);
     } else {
-        return rb_ivar_get(self, rb_intern_str(rb_str_concat(rb_str_new_cstr("@"), name)));
+        return rb_ivar_get(self, rb_intern_str(rb_str_concat(rb_str_new2("@"), name)));
     }
 }
 
