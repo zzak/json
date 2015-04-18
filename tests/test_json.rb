@@ -491,6 +491,8 @@ EOT
     assert_equal @hash, JSON.load(stringio)
     assert_equal nil, JSON.load(nil)
     assert_equal nil, JSON.load('')
+  ensure
+    tempfile.close!
   end
 
   def test_load_with_options
@@ -548,4 +550,14 @@ EOT
     JSON::Parser.new(source)
     assert_equal Encoding::ASCII_8BIT, source.encoding
   end if defined?(Encoding::ASCII_8BIT)
+
+  def test_error_message_encoding
+    bug10705 = '[ruby-core:67386] [Bug #10705]'
+    json = "\"\xE2\x88\x9A\"".force_encoding(Encoding::UTF_8)
+    e = assert_raise(JSON::ParserError) {
+      JSON.parse(json)
+    }
+    assert_equal(Encoding::UTF_8, e.message.encoding, bug10705)
+    assert_include(e.message, json, bug10705)
+  end if defined?(Encoding::UTF_8)
 end
